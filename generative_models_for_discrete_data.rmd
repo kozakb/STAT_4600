@@ -43,7 +43,8 @@ Given a population of size N where K of the N objects are "success states." How 
 
 
 ```{r}
-# A random sample of size 5 from a hyper geometric distribution with a population of N=25, K=5 success state objects, given a sample of n=10
+# A random sample of size 5 from a hyper geometric distribution with a population of N=25, K=5 success state objects, 
+# given a sample of n=10
 rhyper(5, 5, 20, 10)
 # What is the probability that we will see 5 success state objects?
 dhyper(5, 5, 20, 10)
@@ -182,8 +183,6 @@ var(poisson_rv)
 
 
 ```{r}
-
-
 cel = BSgenome.Celegans.UCSC.ce2
 
 dna_seq = cel$chrM
