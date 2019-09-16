@@ -16,6 +16,7 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(BiocManager)
 library(Biostrings)
+library(BSgenome.Celegans.UCSC.ce2)
 ```
 
 
