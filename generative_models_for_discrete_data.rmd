@@ -1,0 +1,59 @@
+---
+title: "Generative Models for Discrete Data"
+author: "Brandon Kozak"
+date: "15/09/2019"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+# Exercises
+
+## 1.1
+
+Geometric Distribution:
+
+Given a probability p, how many failures will it take to see the first success?
+
+```{r}
+# A random sample of size 5 from a geometric distribution with p=.25
+rgeom(5, .25)
+# What is the probability that we will see 4 failures before the first success?
+dgeom(4, .25)
+# What is the probability that we will see no more than 3 failures before the first success?
+pgeom(3, .25)
+```
+
+Hypergeometric Distribution:
+
+Given a population of size N where K of the N objects are "success states." How many success state objects will I obtain (k) from drawing a sample of size n without replacement?
+
+
+```{r}
+# A random sample of size 5 from a hyper geometric distribution with a population of N=25, K=5 success state objects, given a sample of n=10
+rhyper(5, 5, 20, 10)
+# What is the probability that we will see 5 success state objects?
+dhyper(5, 5, 20, 10)
+# What is the probability that we will see at least 1 success state object?
+phyper(0, 5, 20, 10, lower.tail = F)
+```
+
+# 1.2
+
+P(X = 2 | X ~ Bin(10, .3))
+```{r}
+dbinom(x = 2, size = 10, p = .3)
+```
+
+P(X <= 2 | X ~ Bin(10, .3))
+```{r}
+# USing only dbinom()
+dbinom(x = 0, size = 10, p = .3) + dbinom(x = 1, size = 10, p = .3) + dbinom(x = 2, size = 10, p = .3)
+# Using pbinom()
+pbinom(q = 2, size = 10, p = .3)
+```
