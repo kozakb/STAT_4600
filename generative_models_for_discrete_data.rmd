@@ -15,6 +15,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r}
 library(tidyverse)
 library(BiocManager)
+library(Biostrings)
 ```
 
 
@@ -183,6 +184,8 @@ var(poisson_rv)
 ```{r}
 
 
+cel = BSgenome.Celegans.UCSC.ce2
 
+dna_seq = cel$chrM
 ```
 
