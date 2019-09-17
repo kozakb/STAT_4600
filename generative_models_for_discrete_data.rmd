@@ -7,8 +7,8 @@ output:
   html_document: default
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+```{r setup, include=FALSE, message = FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE)
 ```
 
 
@@ -18,6 +18,25 @@ library(BiocManager)
 library(Biostrings)
 library(BSgenome.Celegans.UCSC.ce2)
 ```
+
+# Questions we will answer in this chapter
+
+* Given a certain model, how can we obtain the probabilities for all possible outcomes?
+
+* How do theoretical frequencies compare with those observed in real data?
+
+* How can we use the Poisson distribution to analyse data on epitope detection
+
+* How can we apply the Multinomial distribution and Monte Carlo simulation to perform power tests?
+
+# Our first example
+
+Let X be the number of mutations along a genome of HIV. 
+
+We are told that mutations occur at a rate of .00005 per nucleotide per replication cycle. Furthermore we assume that this genome contains 10000 nucleotides per cycle.
+
+Thus, for one cycle, X ~ Poisson(lambda = .00005 * 10000 = 5 )
+
 
 
 
@@ -40,7 +59,7 @@ pgeom(3, .25)
 
 Hypergeometric Distribution:
 
-Given a population of size N where K of the N objects are "success states." How many success state objects will I obtain (k) from drawing a sample of size n without replacement?
+Given a population of size N where K of the N objects are "success states." How many success state objects will I obtain from drawing a sample of size n without replacement?
 
 
 ```{r}
