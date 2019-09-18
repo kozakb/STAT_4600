@@ -157,6 +157,7 @@ Here, I will state what each letter represents and how the functions work:
 * r: random generation, it gives a random sample of size n under a certain distribution.
 
 We will see more examples of theses functions throughout the class.
+<<<<<<< HEAD
 
 # The Binomial Distribution
 
@@ -177,6 +178,10 @@ rbinom(n = 10, prob = .5, size = 3)
 # Monte Carlo Simulation
 
 Monte Carlo is a method to solve problems with the use of randomness. There are three main problems that can be addressed with Monte Carlo: optimization, numerical integration, and generating draws from a probability distribution.
+=======
+
+# The Binomial Distribution
+>>>>>>> a4ac2c8911e75711a6792bd092e0cbfb1bce47e7
 
 Today we will focus on the third problem.
 
