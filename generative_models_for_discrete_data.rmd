@@ -158,7 +158,6 @@ Here, I will state what each letter represents and how the functions work:
 
 We will see more examples of theses functions throughout the class.
 
-
 # The Binomial Distribution
 
 If we perform a Bernoulli trial n times and then ask how many of the trials ended in a success, we are sampling data from a **Binomial distribution**
@@ -177,6 +176,8 @@ rbinom(n = 10, prob = .5, size = 3)
 # Monte Carlo Simulation
 
 Monte Carlo is a method to solve problems with the use of randomness. There are three main problems that can be addressed with Monte Carlo: optimization, numerical integration, and generating draws from a probability distribution.
+
+# The Binomial Distribution
 
 
 Today we will focus on the third problem.
