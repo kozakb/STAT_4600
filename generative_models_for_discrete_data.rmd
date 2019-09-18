@@ -50,7 +50,7 @@ Moreover, for any value(s) of X we can find the several probabilities:
   * The probability of seeing exactly x mutations in a cycle
   * The probability of seeing at least x mutations in a cycle
   * The probability of seeing no more than x mutations in a cycle
-  * The probability of seeing between x1 and x2 mutations in a cycle (x1 > x2)
+  * The probability of seeing between x1 and x2 mutations in a cycle (x1 < x2)
   
 In general, a function $f: A \rightarrow [0,1]$ that takes an integer as input (in the case of discrete data) and returns a probability as output is called a **probability mass function (PMF)**. In particular, we obtain the probability of the observable X being observed to have a value of x, denoted $P(X=x)$.
 
@@ -158,6 +158,7 @@ Here, I will state what each letter represents and how the functions work:
 
 We will see more examples of theses functions throughout the class.
 
+
 # The Binomial Distribution
 
 If we perform a Bernoulli trial n times and then ask how many of the trials ended in a success, we are sampling data from a **Binomial distribution**
@@ -173,10 +174,10 @@ rbinom(n = 10, prob = .5, size = 3)
 ```
 
 
-
 # Monte Carlo Simulation
 
 Monte Carlo is a method to solve problems with the use of randomness. There are three main problems that can be addressed with Monte Carlo: optimization, numerical integration, and generating draws from a probability distribution.
+
 
 Today we will focus on the third problem.
 
