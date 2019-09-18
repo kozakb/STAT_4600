@@ -1,7 +1,7 @@
 ---
 title: "Generative Models for Discrete Data"
 author: "Brandon Kozak"
-date: "15/09/2019"
+date: "`r Sys.Date()`"
 output:
   pdf_document: default
   html_document: default
@@ -21,12 +21,10 @@ library(BSgenome.Celegans.UCSC.ce2)
 
 # Questions we will answer in this chapter
 
+
 * Given a certain model, how can we obtain the probabilities for all possible outcomes?
-
 * How do theoretical frequencies compare with those observed in real data?
-
-* How can we use the Poisson distribution to analyse data on epitope detection
-
+* How can we use the Poisson distribution to analyse data on epitope detection?
 * How can we apply the Multinomial distribution and Monte Carlo simulation to perform power tests?
 
 # Our first example
@@ -35,9 +33,152 @@ Let X be the number of mutations along a genome of HIV.
 
 We are told that mutations occur at a rate of .00005 per nucleotide per replication cycle. Furthermore we assume that this genome contains 10000 nucleotides per cycle.
 
-Thus, for one cycle, X ~ Poisson(lambda = .00005 * 10000 = 5 )
+Thus, for one cycle, X ~ Poisson($\lambda$ = .00005 * 10000 = 5)
+
+That's cool and all, but what does this tell us about our mutations?
+
+Quite a lot actually! For example:
+
+* We can expect that in the long run, each cycle will contain 5 mutations (aka the expected value of X)
+* We can quantify the spread of the distribution of X in two ways
+  * The variance, which is equal to $\sqrt{5}$ in our example
+  * The standard deviation, which is equal to 5 in our example
+  * Note that the standard deviation is just the square root of the variance.
+
+Moreover, for any value(s) of X we can find the several probabilities:
+
+  * The probability of seeing exactly x mutations in a cycle
+  * The probability of seeing at least x mutations in a cycle
+  * The probability of seeing no more than x mutations in a cycle
+  * The probability of seeing between x1 and x2 mutations in a cycle (x1 > x2)
+  
+In general, a function $f: A \rightarrow [0,1]$ that takes an integer as input (in the case of discrete data) and returns a probability as output is called a **probability mass function (PMF)**. In particular, we obtain the probability of the observable X being observed to have a value of x, denoted $P(X=x)$.
+
+\newpage
+
+Given this, lets try some examples in R.
+
+To obtain $P(X=x)$ where X follows a Poisson($\lambda$) distribution, we use the function called dpois(x, lambda)
+
+For example, what is the probability that we observe exactly 5 mutations in our genome?
+
+```{r}
+dpois(x = 5, lambda = 5)
+```
+
+If we want to obtain the probability for multiple  values, say 0 through 20, we can set the first parameter (x) to be a vector.
+
+In R, we can use the colon (:) operator to generate a sequence of integers, i.e. 1:3 = (1,2,3).
+
+```{r}
+dpois(x = 0:20, lambda = 5)
+```
+
+We could use this to plot the pmf over certain values. 
+
+```{r}
+tibble(x_values = 1:20, probability = dpois(x = 1:20, lambda = 5)) %>% 
+  ggplot(aes(x = x_values, y = probability)) +
+    geom_bar(stat = "identity", fill = "gold3")
+```
+
+Note that after some math we can show that the pmf of a Poisson distribution is $\frac{e^{-\lambda} \lambda^{x}} {x!}$  
 
 
+# Factors
+
+In this section we will discuss factors and how they work in R.
+
+With discrete data, we often associate labels with certain values. For example:
+
+* Sex: Male, Female
+* Pain Level: Low, Medium, High
+* Blood Genotypes: AA, AB, AO, BB, BO, OO
+* Binary outcomes: 0 = No, 1 = Yes
+
+We use the function factor() to convert a vector to a factor vector.
+
+```{r}
+pain_level = c("low", "low", "medium", "high", "low", "medium", "high", "high") %>% factor()
+
+pain_level
+```
+
+You'll notice that by default R sorts factors alphabetically, to fix this we set a parameter "levels" in side the call to factor()
+
+```{r}
+pain_level = c("low", "low", "medium", "high", "low", "medium", "high", "high") %>% 
+  factor(levels = c("low", "medium", "high"))
+
+pain_level
+```
+
+**Question**
+
+What if you want to create a factor that has some levels not yet in your data?
+
+**Solution**
+
+We would make the same call to factor and include the extra factors while setting "levels"
+
+```{r}
+pain_level = c("low", "low", "medium", "high", "low", "medium", "high", "high") %>% 
+  factor(levels = c("none", "low", "medium", "high"))
+
+pain_level[1] = "none"
+
+pain_level
+```
+
+# Bernoulli Trials
+
+Consider a binary event with two possible outcomes, say whether a new born baby is male or female. Further assume that each sex is equally likely and that 0 = male, and 1 = female. 
+
+If X represents the sex of a random new born, then we can say X follows a Bernoulli distribution with probability p = .5.
+
+Note that a Bernoulli trial with probability p is equivalent to a binomial distribution with size n and probability p. We will talk more about the binomial distribution shorty.
+
+Lets start by generating random samples from a Bernoulli trial with p = .5. To do this, we use the rbinom() function. 
+
+Say we wanted to simulated 20 births.
+```{r}
+rbinom(n = 20, prob = .5, size = 1)
+```
+
+# Distributions in base R
+
+At this point we've seen two ways to work with distributions in r (dpois() and rbinom()). R is actually very systematic about this and has a set of 4 functions for all the common distributions. Each function will start with one of (d, p, q, or r) and will end with an abbreviation of the name of the distribution (pois for Poisson, binom for binomial, norm for normal, etc...). 
+
+Here, I will state what each letter represents and how the functions work:
+
+* d: probability distribution function, it gives $P(X=x)$ under a certain distribution.
+* p: cumulative distribution function, it gives $P(X\le x)$ under a certain distribution.
+* q: quantile function, it gives the value of x for which the cumulative probability equals p under a certain distribution.
+* r: random generation, it gives a random sample of size n under a certain distribution.
+
+We will see more examples of theses functions throughout the class.
+
+# The Binomial Distribution
+
+If we perform a Bernoulli trial n times and then ask how many of the trials ended in a success, we are sampling data from a **Binomial distribution**
+
+Say we are looking at mothers who are planning to have three children in the future. If X represents the number of boys that a individual mother has. Then we say X follows a binomial distribution with n = 3 and p = .5.
+
+we can take a random sample of 10 mothers
+
+Note that n in rbinom() refers to how many samples we want to take, whereas size refers to the size of each trial (usually denoted n when we refer to the binomial distribution).
+
+```{r}
+rbinom(n = 10, prob = .5, size = 3)
+```
+
+
+
+# Monte Carlo Simulation
+
+Monte Carlo is a method to solve problems with the use of randomness. There are three main problems that can be addressed with Monte Carlo: optimization, numerical integration, and generating draws from a probability distribution.
+
+Today we will focus on the third problem.
 
 
 # Exercises
