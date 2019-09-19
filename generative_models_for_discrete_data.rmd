@@ -365,6 +365,34 @@ So, if we want our test to have a power equal to 80% we must have a minimum samp
 
 \newpage
 
+Solution:
+
+A good approach is to perform the simulation many time for various values of n, and then plot the relationship between the sample size and power.
+
+First, let's define a function that will generate power.
+```{r}
+get_power = function(data, probs, cirt_v) {
+  
+data_matrix_H0 = generate_stat_test(data, (1/nrow(data)) * colSums(data[])[1])
+
+data_col_sum = colSums(data_matrix_H0)
+
+power = mean(data_col_sum > cirt_v)
+  
+return(power)
+  
+}
+```
+
+
+```{r}
+probs = c(.375, .25, .25, .125)
+get_power(rmultinom(1000, prob = probs, size = 20), probs, percent_95th)
+  
+
+
+
+```
 # Exercises
 
 ## 1.1
