@@ -177,12 +177,163 @@ rbinom(n = 10, prob = .5, size = 3)
 
 Monte Carlo is a method to solve problems with the use of randomness. There are three main problems that can be addressed with Monte Carlo: optimization, numerical integration, and generating draws from a probability distribution.
 
-# The Binomial Distribution
+We've seen one example of Monte Carlo so far when we were doing epitope detection.
+
+Now we will switch gears and look at how Monte Carlo can be used to simulate power for a hypothesis test.
+
+In statistics, power is the probability that we reject our null hypothesis given that the null hypothesis is false.
+
+Since we most often wish to reject the null hypothesis, we can view power as the **true positive rate**.
+
+Lets say that we wish to test the null hypothesis ($H_0$) that DNA data we've collected comes from a fair process. That is:
+
+$H_0: P_A=.25,P_C=.25,P_G=.25,P_T=.25$ v.s. $H_a:$ At least one $P_i$ differs from the rest.
+
+Before we define the test, lets first take 20 random samples from a multinomial distribution with n = 20 and $P_A=...=P_G=.25$.
+```{r}
+set.seed(20190919)
+rmultinom(10, prob = rep(.25,4), size = 20)
+```
+
+We can see that even with 20 samples, there is quite a lot of variability in the placements of the boxes.
+
+Spoiler alert! The test we are about to simulate is called the chi-squared test for goodness of fit. Although we can do this test without any simulation (one of the focus points in chapter 2), it still a good idea to get experience with Monte Carlo simulation, as it might be the only option for certain situations.
+
+The test statistic is defined to be:
+
+$\chi^2 =\sum_{i=1}^n \frac{(E[x_i]-x_i)^2}{E[x_i]}$
+
+That is, for each individual observed x, we take the squared difference of its expected value and the observed value, then divide by the expected value. We will show go though the process of generating this statistic directly from the above sampling.
+
+First, let's store this matrix (this is what rmultinom() gives us as output) into an object.
+
+```{r}
+set.seed(1234)
+dna_data = rmultinom(10, prob = rep(.25,4), size = 20)
+dna_data
+```
+
+Now we will want the expected values for each $x_i$, since we have the probabilities, $E[X_i] = p_i * n$
+
+Note: we can multiply a vector by a constant and R will do that multiplication for each element in the vector.
+```{r}
+exp_x = rep(.25,4) * 20
+exp_x
+```
+
+We can continue to perform these operations on the entire matrix, R handles this for us in a elegant way.
+
+If we subtract a vector from a matrix, R will recycle the values in the vector until the last element in the matrix is reached. This works perfectly for us if the number of elements in the vector matches the number of rows in the matrix.
+```{r}
+dna_data = dna_data - exp_x
+dna_data
+```
 
 
-Today we will focus on the third problem.
+We can perform other operation on the matrix, R will sill do this element wise. Note that squaring a matrix usually means something different. In our context, however, this is exactly what we need.
+```{r}
+dna_data = dna_data^2
+dna_data
+```
+
+Now we just need to divide by $E[X_i]$
+```{r}
+dna_data = dna_data / exp_x
+dna_data
+```
+
+In fact, to make things easier, lets make a function that combines all the above steps.
+
+```{r}
+generate_stat_test = function(matrix, exp_value){
+  return((matrix-exp_value)^2 / exp_value)
+}
+```
+
+Now we can generate much larger samples.
+```{r}
+set.seed(1234)
+dna_data = rmultinom(1000, prob = rep(.25,4), size = 20)
+dna_data_matrix_H0 = generate_stat_test(dna_data, exp_x)
+dna_data_matrix_H0[1:4,1:20]
+```
+
+To proceed with the simulation, we will need to find the overall variability for each DNA sample. Lucky base R has a function to do this called colSums().
+```{r}
+dna_data_col_sum = colSums(dna_data_matrix_H0)
+```
+
+This is also useful if we want to plot the distribution of x.
+```{r}
+hist(dna_data_col_sum, breaks = 25, col = "blue")
+```
+
+In particular, we would like to obtain the $95^{th}$ percentile for the overall variability of all DNA samples.
+```{r}
+percent_95th = quantile(dna_data_col_sum,.95)
+```
+
+This means that 5% of DNA samples vary by a value of 7.6. We will use this number to detect if a individual DNA sample comes from a different (not fair) process. 
+
+To do this, lets first generate DNA data again, but this time we will change the probabilities so that the process is no longer fair. That is, this new DNA will follow a multinomial distribution with $P_A=.375,P_C=.25,P_G=.25,P_T=.125$ and n = 20. We will take 1000 samples.
+
+```{r}
+set.seed(1234)
+dna_data_nf = rmultinom(1000, prob = c(.375, .25, .25, .125), size = 20)
+dna_data_nf[1:4,1:20]
+```
 
 
+```{r}
+dna_data_matrix_H0_nf = generate_stat_test(dna_data_nf, exp_x)
+dna_data_matrix_H0_nf[1:4,1:20]
+```
+
+
+```{r}
+dna_data_col_sum_nf = colSums(dna_data_matrix_H0_nf)
+dna_data_col_sum_nf[1:20]
+```
+
+Since we know this new DNA data does, in fact, not come from a fair process, we can calculate the power of our test by taking the total number of DNA samples that vary by more than 7.6 (ie, we would have rejected that test), and divide by the total number of tests we performed (1000 in this case).
+
+```{r}
+power = mean(dna_data_col_sum_nf > percent_95th)
+power
+```
+
+Thus, our power is only 20% when use 20 samples per test. This brings us to an interesting question.
+
+**What is the minimum sample size (per test) required to guarantee a power of 80%?**
+
+Solution:
+
+A good approach is to perform the simulation many time for various values of n, and then plot the relationship between the sample size and power.
+
+First, let's define a function that will generate power.
+```{r}
+get_power = function(data, probs, cirt_v) {
+  
+data_matrix_H0 = generate_stat_test(data, (1/nrow(data)) * colSums(data[])[1])
+
+data_col_sum = colSums(data_matrix_H0)
+
+power = mean(data_col_sum > cirt_v)
+  
+return(power)
+  
+}
+```
+
+
+```{r}
+probs = c(.375, .25, .25, .125)
+get_power(rmultinom(1000, prob = probs, size = 20), probs, percent_95th)
+  
+
+
+
+```
 # Exercises
 
 ## 1.1
