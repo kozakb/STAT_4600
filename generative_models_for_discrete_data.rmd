@@ -367,6 +367,7 @@ So, if we want our test to have a power equal to 80% we must have a minimum samp
 
 \newpage
 
+
 # Exercises
 
 ## 1.1
