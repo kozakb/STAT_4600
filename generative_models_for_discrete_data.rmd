@@ -43,8 +43,8 @@ Quite a lot actually! For example:
 
 * We can expect that in the long run, each cycle will contain 5 mutations (aka the expected value of X)
 * We can quantify the spread of the distribution of X in two ways
-  * The variance, which is equal to $\sqrt{5}$ in our example
-  * The standard deviation, which is equal to 5 in our example
+  * The standard deviation, which is equal to $\sqrt{5}$ in our example
+  * The variance, which is equal to 5 in our example
   * Note that the standard deviation is just the square root of the variance.
 
 Moreover, for any value(s) of X we can find the several probabilities:
@@ -367,6 +367,7 @@ So, if we want our test to have a power equal to 80% we must have a minimum samp
 
 \newpage
 
+
 # Exercises
 
 ## 1.1
@@ -410,10 +411,7 @@ dbinom(x = 2, size = 10, p = .3)
 
 P(X <= 2 | X ~ Bin(10, .3))
 ```{r}
-
 # Using only dbinom()
-
-
 dbinom(x = 0, size = 10, p = .3) + dbinom(x = 1, size = 10, p = .3) + dbinom(x = 2, size = 10, p = .3)
 # Using pbinom()
 pbinom(q = 2, size = 10, p = .3)
