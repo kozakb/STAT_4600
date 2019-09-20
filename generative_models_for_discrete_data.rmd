@@ -23,7 +23,6 @@ library(BSgenome.Celegans.UCSC.ce2)
 
 # Questions we will answer in this chapter
 
-
 * Given a certain model, how can we obtain the probabilities for all possible outcomes?
 * How do theoretical frequencies compare with those observed in real data?
 * How can we use the Poisson distribution to analyse data on epitope detection?
