@@ -161,12 +161,15 @@ We will see more examples of theses functions throughout the class.
 
 If we perform a Bernoulli trial n times and then ask how many of the trials ended in a success, we are sampling data from a **Binomial distribution**.
 
-After some math, we can show that the PMF of the binomial distribution is: ${n \choose x} p^x q^{n-x}$ 
-where,  
-* p + q = 1 
-* p is the probability of success, q = (1 - p) is the probability of failure  
-* n is the total number of trials  
-* x is the random variable we are looking for 
+After some math, we can show that the PMF of the binomial distribution is: ${n \choose x} p^x q^{n-x}$,  where:
+
++ p + q = 1 
+
++ p is the probability of success, q = (1 - p) is the probability of failure
+
++ n is the total number of trials
+
++ x is the random variable we are looking for
 
 Say we are looking at mothers who are planning to have three children in the future. If X represents the number of boys that a individual mother has. Then we say X follows a binomial distribution with n = 3 and p = .5.
 
