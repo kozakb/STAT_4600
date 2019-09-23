@@ -21,12 +21,24 @@ library(Biostrings)
 library(BSgenome.Celegans.UCSC.ce2)
 ```
 
+# Goals for this chapter  
+* Learn how to obtain the probabilities of all possible outcomes from a given model and see how we can compare the theoretical frequencies with those observed in real data.  
+* Explore a complete example of how to use the Poisson distribution to analyse data on epitope detection.  
+* See how we can experiment with the most useful generative models for discrete data: Poisson, binomial, multinomial.  
+  + Poisson: Mostly used to calculate rates, for example, calculating the rate of cancer cell formation in an hour.  
+  + Binomial: can be used for testing a new drug that is being introduced to cure a disease, it either cures the disease (it's successful) or it doesn't cure the disease (it's a failure).  
+  + Multinomial: Used in genetics where a person may have 1 of many possible alleles, that occur with certain probabilities in a given population, at a gene locus.  
+* Use the R functions for computing probabilities and counting rare events.
+Generate random numbers from specified distributions.  
+
 # Questions we will answer in this chapter
 
 * Given a certain model, how can we obtain the probabilities for all possible outcomes?
 * How do theoretical frequencies compare with those observed in real data?
 * How can we use the Poisson distribution to analyse data on epitope detection?
 * How can we apply the Multinomial distribution and Monte Carlo simulation to perform power tests?
+
+\newpage
 
 # Our first example
 
@@ -55,7 +67,6 @@ Moreover, for any value(s) of X we can find the several probabilities:
   
 In general, a function $f: A \rightarrow [0,1]$ that takes an integer as input (in the case of discrete data) and returns a probability as output is called a **probability mass function (PMF)**. In particular, we obtain the probability of the observable X being observed to have a value of x, denoted $P(X=x)$.
 
-\newpage
 
 Given this, lets try some examples in R.
 
