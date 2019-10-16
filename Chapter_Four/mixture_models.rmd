@@ -39,7 +39,8 @@ We will demo-straight a mixture model with two equal-size components.
 First let us generate 10000 coin flips
 
 ```{r}
-coin_flips_1 = runif(1000000) > .5
+set.seed(1234)
+coin_flips_1 = runif(10000) > .5
 table(coin_flips_1)
 ```
 
@@ -62,7 +63,7 @@ Can we do this without vapply?
 ```{r}
 mu = c(1,5)
 sigma = c(.5,1)
-
+set.seed(1234)
 values_1 = rnorm(length(coin_flips_1),
                mean = ifelse(coin_flips_1, mu[1], mu[2]),
                sd = ifelse(coin_flips_1, sigma[1], sigma[2]))
@@ -75,7 +76,7 @@ Now that we have improved code, lets see what happens when we flip 1 million coi
 coin_flips_2 = runif(1000000) > .5
 mu = c(1,5)
 sigma = c(.5,1)
-
+set.seed(1234)
 values_2 = rnorm(length(coin_flips_2),
                mean = ifelse(coin_flips_2, mu[1], mu[2]),
                sd = ifelse(coin_flips_2, sigma[1], sigma[2]))
@@ -145,7 +146,7 @@ simulate_flip = function(pi,p1,p2){
     return(sum(rand_nums[2:3]<p2))
   }
 }
-
+set.seed(1234)
 # True = Head, False = Tails
 coin_flips = replicate(100,simulate_flip(pi,p1,p2))
 table(K=coin_flips)
@@ -156,6 +157,7 @@ table(K=coin_flips)
 b.)
 
 ```{r}
+set.seed(1234)
 # True = Head, False = Tails
 coin_flips = replicate(100,simulate_flip(1/4,p1,p2))
 table(K=coin_flips)
@@ -171,6 +173,7 @@ I do not believe there is any way to obtain/approximate the probabilities by jus
 
 Let's start by generating data from a mixture of two normal with unknown means, but variance of 1 for each.
 ```{r}
+set.seed(1234)
 # We are not suppose to know these!
 mus = c(-0.5, 1.5)
 # Theses are our labels
@@ -194,6 +197,7 @@ We can take a look at packages meant for EM, like mixtools.
 
 ```{r}
 library("mixtools")
+set.seed(1234)
 y = c(rnorm(100, mean = -0.2, sd = 0.5),
       rnorm( 50, mean =  0.5, sd =   1))
 gm = normalmixEM(y, k = 2, lambda = c(0.5, 0.5),
@@ -233,6 +237,7 @@ Will investigate this later, need to make sure I have the proper files.
 ## 4.2.4 More than two components
 
 ```{r}
+set.seed(1234)
 # effecitvely the means
 masses = c(A =  331, C =  307, G =  347, T =  322)
 # the chance of certain types
@@ -257,6 +262,7 @@ What if we set N to 1000?
 
 
 ```{r}
+set.seed(1234)
 N = 1000
 nuclt   = sample(length(probs), N, replace = TRUE, prob = probs)
 # Now generate the data using the means/masses
@@ -274,6 +280,7 @@ We see that the histogram look less defined.
 What about if we leave N=7000 but sd=10?
 
 ```{r}
+set.seed(1234)
 N = 7000
 sd=10
 nuclt   = sample(length(probs), N, replace = TRUE, prob = probs)
@@ -292,6 +299,7 @@ We see that since the sd is higher, each individual dist is more spread out caus
 Can we plot the theoretical density curve?
 
 ```{r}
+set.seed(1234)
 N = 7000
 sd=3
 nuclt   = sample(length(probs), N, replace = TRUE, prob = probs)
@@ -325,6 +333,7 @@ It's often very difficult to obtain the exact sampling distribution of a statist
 
 Lets use this idea to obtain the sampling dist of the median using Darwin's Zea Mays data set.
 ```{r}
+set.seed(1234)
 library("HistData")
 ZeaMays$diff
 
@@ -351,6 +360,7 @@ ci = quantile(meds,c(.01,.99))
 We can do the same with the bootstrap package. Lets also look at the sample mean too!
 
 ```{r}
+set.seed(1234)
 library("bootstrap")
 mean_boot = bootstrap(ZeaMays$diff, B, mean)
 median_boot = bootstrap(ZeaMays$diff, B, median)
@@ -401,6 +411,7 @@ Key idea here is that we can allow as many labels as there are observations. If 
 
 Consider the following 2-level data generating scheme
 ```{r}
+set.seed(1234)
 # Level One, create a sample from an exponential dist
 w = rexp(10000, rate = 1)
 # Level Two, take values from a Normal(.3, sqrt(w))
@@ -415,6 +426,7 @@ Turns out that this is known as the Laplace distribution.
 We can also look at the asymmetric Laplace
 
 ```{r}
+set.seed(1234)
 # Constants to transform our mean and varaince
 mu = 0.3; sigma = 0.4; theta = -1
 w  = rexp(10000, 1)
@@ -439,6 +451,7 @@ Here we talk about the Gamma distribution, it has two parameters $\alpha$ and $\
 Here are some examples 
 
 ```{r}
+set.seed(1234)
 ggplot(tibble(x = rgamma(10000, shape = 2, rate = 1/3)),
    aes(x = x)) + geom_histogram(bins = 100, fill= "brown")
 ggplot(tibble(x = rgamma(10000, shape = 10, rate = 3/2)),
@@ -453,6 +466,7 @@ Now, to sample from a Gamma-Poisson mixture, we do two steps:
 For example
 
 ```{r}
+set.seed(1234)
 # our parameters
 lambda = rgamma(10000, shape = 10, rate = 3/2)
 # our values
@@ -483,6 +497,7 @@ If the variability differs by alot, it becomes harder to test for true differenc
 One way to overcome this is by using **Variance stabilizing transformations**
 
 ```{r}
+set.seed(1234)
 # Values of lambda
 lambdas = seq(100, 900, by = 100)
 
@@ -508,6 +523,7 @@ summarise(group_by(simdat, lambda), sd(y), sd(2*sqrt(y)))
 Lets also try to increase the number of replicates.
 
 ```{r}
+set.seed(1234)
 simdat = lapply(lambdas, function(l)
     tibble(y = rpois(n = 250, lambda=l), lambda = l)
   ) %>% bind_rows
@@ -526,6 +542,7 @@ Ah! We see how helpful theses transformations can be!
 We can also go back to the gamma-Poisson distribution.
 
 ```{r}
+set.seed(1234)
 # Generate some mu values
 muvalues = 2^seq(0, 10, by = 1)
 # For each mu, generate 1000 random binoimals with size 4. 
@@ -547,6 +564,7 @@ ggplot(simgp, aes(x = mu, y = mean, ymin = lower, ymax = upper)) +
 Is there any transformations we can apply to stabilize the variance?
 
 ```{r}
+set.seed(1234)
 simgp = mutate(simgp,
   slopes = 1 / sd,
   trsf   = cumsum(slopes * mean),
@@ -564,6 +582,7 @@ We talk about the delta method. A theoretical approach to obtain theses transfor
 ## 1.)
 
 ```{r}
+set.seed(1234)
 # Load data
 yvar = readRDS(here::here("Data","Myst.rds"))$yvar
 # plot dist
@@ -586,6 +605,7 @@ miniter = 50; maxiter = 1000
 ```
 
 ```{r}
+set.seed(1234)
 # Our EM algorithmn
 while((delta > tolerance) && (iter <= maxiter) || (iter < miniter)) {
   # E steps
@@ -622,6 +642,7 @@ Tolerance is the minimum amount of difference between the log likelihood from on
 miniter and maxiter and the min and max number of iterations, theses of course take priority over the tolerance.
 
 ```{r}
+set.seed(1234)
 # Compare using mixtools
 
 gm = normalmixEM(yvar, k = 2)
