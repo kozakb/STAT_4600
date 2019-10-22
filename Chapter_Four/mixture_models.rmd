@@ -16,6 +16,19 @@ library(tidyverse)
 library(ggplot2)
 library(vcd)
 ```
+
+## Pros and Cons
+
+What I liked about this chapter:
+
+* Covered good statistical topics such as bootstrap, different types of mixture models (finite, zero inflated data, more than 2 components, infinite mixtures), variance stabilizing transformations
+* Relating the examples back to the distributions we learned in chapter 1 (Gamma-Poisson, bi-model models from normal dists).
+
+What I disliked about this chapter:
+
+* Wish there was easier example/walk-though of the EM algorithm, I found exercise 4.1 to be quite over whelming.
+* In exercise 4.3, part b could have been more interactive/better explained. I found it confusing and not very helpful to just throw a line of code and blindly move through the question.
+
 ## Intro
 
 Key idea in this chapter will be techniques for dealing with heterogeneity. 
@@ -213,26 +226,39 @@ gm$loglik
 ## Models for zero inflated data
 
 Will investigate this later, need to make sure I have the proper files.
-# ```{r}
-# library(mosaics)
-# library(mosaicsExample)
-# 
-# constructBins(infile = system.file(file.path("extdata", "wgEncodeSydhTfbsGm12878Stat1StdAlnRep1_chr22_sorted.bam"), package="mosaicsExample"),
-#     fileFormat = "bam", outfileLoc = "../data/",
-#     byChr = FALSE, useChrfile = FALSE, chrfile = NULL, excludeChr = NULL,
-#     PET = FALSE, fragLen = 200, binSize = 200, capping = 0)
-# constructBins(infile = system.file(file.path("extdata", "wgEncodeSydhTfbsGm12878InputStdAlnRep1_chr22_sorted.bam"), package="mosaicsExample"),
-#     fileFormat = "bam", outfileLoc = "../data/",
-#     byChr = FALSE, useChrfile = FALSE, chrfile = NULL, excludeChr = NULL,
-#     PET = FALSE, fragLen = 200, binSize = 200, capping = 0)
-# datafiles = c("../data/wgEncodeSydhTfbsGm12878Stat1StdAlnRep1_chr22_sorted.bam_fragL200_bin200.txt",
-#               "../data/wgEncodeSydhTfbsGm12878InputStdAlnRep1_chr22_sorted.bam_fragL200_bin200.txt")
-# binTFBS = readBins(type = c("chip","input"), fileName = datafiles)
-# 
-# ```
+```{r}
+ library(mosaics)
+ library(mosaicsExample)
+
+ constructBins(infile = system.file(file.path("extdata", "wgEncodeSydhTfbsGm12878Stat1StdAlnRep1_chr22_sorted.bam"), package="mosaicsExample"),
+     fileFormat = "bam", outfileLoc = "../data/",
+     byChr = FALSE, useChrfile = FALSE, chrfile = NULL, excludeChr = NULL,
+     PET = FALSE, fragLen = 200, binSize = 200, capping = 0)
+ constructBins(infile = system.file(file.path("extdata", "wgEncodeSydhTfbsGm12878InputStdAlnRep1_chr22_sorted.bam"), package="mosaicsExample"),
+     fileFormat = "bam", outfileLoc = "../data/",
+     byChr = FALSE, useChrfile = FALSE, chrfile = NULL, excludeChr = NULL,
+     PET = FALSE, fragLen = 200, binSize = 200, capping = 0)
+ datafiles = c("../data/wgEncodeSydhTfbsGm12878Stat1StdAlnRep1_chr22_sorted.bam_fragL200_bin200.txt",
+               "../data/wgEncodeSydhTfbsGm12878InputStdAlnRep1_chr22_sorted.bam_fragL200_bin200.txt")
+binTFBS = readBins(type = c("chip","input"), fileName = datafiles)
+
+```
+
+```{r}
+bincts = print(binTFBS)
+ggplot(bincts, aes(x = tagCount)) +
+  geom_histogram(binwidth = 1, fill = "forestgreen")
+```
 
 
+```{r}
+# a
+ggplot(bincts, aes(x = tagCount)) + scale_y_log10() +
+   geom_histogram(binwidth = 1, fill = "forestgreen")
 
+# b
+mean((bincts$tagCount == 0))
+```
 
 ## 4.2.4 More than two components
 
