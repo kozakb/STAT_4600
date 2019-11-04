@@ -8,7 +8,11 @@ output:
 ---
 
 ```{r setup, include=FALSE}
+<<<<<<< HEAD
 knitr::opts_chunk$set(echo = TRUE, message=FALSE)
+=======
+knitr::opts_chunk$set(echo = TRUE)
+>>>>>>> 3c0442613c8f24f8de9e49cdae994e883b78588d
 ```
 
 ```{r}
@@ -576,6 +580,7 @@ print(length(fnFs))
 
 plotQualityProfile(fnFs[1:2]) + ggtitle("Forward")
 plotQualityProfile(fnRs[1:2]) + ggtitle("Reverse")
+<<<<<<< HEAD
 ```
 
 # 5.6
@@ -621,3 +626,6 @@ Cant seem to do this, since I need to put my credit card info into a google acco
 # geocode(bomb_raw$Location)
 ```
 
+=======
+```
+>>>>>>> 3c0442613c8f24f8de9e49cdae994e883b78588d
