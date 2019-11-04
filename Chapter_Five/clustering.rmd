@@ -616,8 +616,10 @@ Cant seem to do this, since I need to put my credit card info into a google acco
 # library(readxl)
 # library(ggmap)
 # 
-# bomb_raw = read_xlsx(here("Data","sep_7_bomb.xlsx"))
+bomb_raw = read_xlsx(here("Data","sep_7_bomb.xlsx"))
 # 
 # geocode(bomb_raw$Location)
+
+
 ```
 
