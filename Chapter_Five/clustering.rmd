@@ -576,6 +576,7 @@ print(length(fnFs))
 
 plotQualityProfile(fnFs[1:2]) + ggtitle("Forward")
 plotQualityProfile(fnRs[1:2]) + ggtitle("Reverse")
+
 ```
 
 # 5.6
