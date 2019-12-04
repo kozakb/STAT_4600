@@ -1,0 +1,442 @@
+---
+title: "High-Throughput Count Data"
+author: "Brandon Kozak"
+output:
+  html_document:
+    df_print: paged
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message=FALSE)
+```
+
+```{r}
+library(tidyverse)
+library(BiocManager)
+library(here)
+library(DESeq2)
+library(edgeR)
+```
+
+# 8.1 Goals of this chapter
+
+* multifactorial designs, linear models and analysis of variance
+* generalized linear models
+* robustness and outlier detection
+* shrinkage estimation 
+
+# 8.2 Some core concepts
+
+* A **sequencing library**is the collection of DNA molecules used as input for the sequencing machine.
+* **Fragments** are the molecules being sequenced. 
+* A **read** is the sequence obtained from a fragment
+
+Between sequencing and counting, there is an important aggregation or clustering step involved, which aggregates sequences that belong together. For example, all reads that belong to the same binding region or same gene. 
+
+There are many approaches to this, including but not limited to:
+
+* explicit alignment or hash-based mapping to a reference sequence
+* reference-independent sequence-similarity based clustering of the reads
+
+In either case, we often need to choose whether to consider different alleles or isoforms separately, or to merge them into an equivalence class. 
+
+Throughout this chapter the term gene will refer exclusively to these aggregates.
+
+# 8.3 Count data
+
+Lets start by loading data from the pasilla package
+
+```{r}
+fn = system.file("extdata", "pasilla_gene_counts.tsv",
+                  package = "pasilla", mustWork = TRUE)
+counts = as.matrix(read.csv(fn, sep = "\t", row.names = "gene_id"))
+
+dim(counts)
+
+counts[ 2000+(0:3), ]
+```
+
+counts is a tally of the number of reads seen for each gene in each sample. We call it the count table. It has 14599 rows (genes) and 7 columns (samples).
+
+The table is a matrix of integer values: the value in the $i^{th}$ row and the $j^{th}$ column of the matrix indicates how many reads have been mapped to gene $i$ in sample $j$.
+
+## 8.3.1 The challenges of count data
+
+* Huge ranges, possibly from 0 to millions. This causes the variance, and more generally, the distribution shape of in different parts of the range to be very different. In other words we must be aware of **heteroskedasticity** (5 bucks to anyone who can pronounce this on their first try).
+* log-normal or normal fits may not work as the data consist of non-negative integers.
+* We need to understand the systematic sampling biases and adjust for them. This is often called **normalization**
+* We need to understand the stochastic properties of the sampling, as well as other sources of stochastic experimental variation.
+* We Often need to make further assumptions, such as that genes with similar locations also have similar dispersion. This is called sharing of information across genes.
+
+# 8.4 Modeling count data
+
+## 8.4.1 Dispersion
+
+Consider a sequencing library that contains $n_1$ fragments corresponding to gene 1, $n_2$ fragments for gene 2, and so on. The total library size would be $n = n_1 + n_2 + ...$.
+
+We submit the library to sequencing and determine the identity of $r$ randomly sampled fragments. We can make a simplification by looking at the orders of magnitude of these numbers:
+
+* the number of genes is in the tens of thousands
+* the value of $n$ depends on the amount of cells that were used to prepare, but for bulk RNA-Seq it will be in the billions or trillions
+* the number of reads $r$ is usually in the tens of millions, and thus much smaller than $n$.
+
+Thus, the probability that a given read maps to the $i^{th}$ gene is $p_i = \frac{n_i}{n}$ and that this is pretty much independent of the outcomes for all the other reads.
+
+Hence, we can model the number of reads for gene $i$ by a Poisson distribution, where the rate of the process is the product of $p_i$ and $r$, or in other words $\lambda_i = rp_i$
+
+However, the presence of different biological conditions cause the experiments to vary more that what the Poisson can predict. 
+
+It so happens that both $p_i$ and $\lambda_i$ vary even between biological replicates.
+
+We find that the negative binomial distribution best fits this data.
+
+## 8.4.2 Normalization
+
+What we aim to do is identify the nature and magnitude of systematic biases, and take them into account in our model-based analysis of the data.
+
+The most important systematic bias comes from variations in the total number of reads in each sample.
+
+output from estimateSizeFactorsForMatrix() in the counts data.
+
+```{r}
+library("tibble")
+ggplot(tibble(
+  `size factor` = estimateSizeFactorsForMatrix(counts),
+  `sum` = colSums(counts)), aes(x = `size factor`, y = `sum`)) +
+  geom_point()
+```
+
+
+Plot the mean-variance relationship for the biological replicates in the pasilla dataset.
+
+```{r}
+library("ggplot2")
+library("matrixStats")
+sf = estimateSizeFactorsForMatrix(counts)
+ncounts  = counts / matrix(sf,
+   byrow = TRUE, ncol = ncol(counts), nrow = nrow(counts))
+uncounts = ncounts[, grep("^untreated", colnames(ncounts)),
+                     drop = FALSE]
+ggplot(tibble(
+        mean = rowMeans(uncounts),
+        var  = rowVars( uncounts)),
+     aes(x = log(mean), y = log(var))) +
+  geom_hex() + coord_fixed() + theme(legend.position = "none") +
+  geom_abline(slope = 1:2, color = c("forestgreen", "red"))
+
+```
+
+# 8.5 A basic analysis
+
+## 8.5.1 Example dataset: the pasilla data
+
+There were two experimental conditions, termed untreated and treated in the header of the count table that we loaded. They correspond to negative control and to siRNA against pasilla. The experimental metadata of the 7 samples in this dataset are provided in a spreadsheet-like table
+
+```{r}
+annotationFile = system.file("extdata",
+  "pasilla_sample_annotation.csv",
+  package = "pasilla", mustWork = TRUE)
+pasillaSampleAnno = readr::read_csv(annotationFile)
+pasillaSampleAnno
+
+```
+
+the overall dataset was produced in two batches, the first one consisting of three sequencing libraries that were subjected to single read sequencing, the second batch consisting of four libraries for which paired end sequencing was used
+
+we replace the hyphens in the type column by underscores, as arithmetic operators in factor levels are discouraged by DESeq2, and convert the type and condition columns into factors, explicitly specifying our preferred order of the levels (the default is alphabetical).
+
+```{r}
+library("dplyr")
+pasillaSampleAnno = mutate(pasillaSampleAnno,
+condition = factor(condition, levels = c("untreated", "treated")),
+type = factor(sub("-.*", "", type), levels = c("single", "paired")))
+```
+
+Now we use the constructor function DESeqDataSetFromMatrix to create a DESeqDataSet from the count data matrix counts and the sample annotation dataframe pasillaSampleAnno
+
+```{r}
+mt = match(colnames(counts), sub("fb$", "", pasillaSampleAnno$file))
+stopifnot(!any(is.na(mt)))
+
+library("DESeq2")
+pasilla = DESeqDataSetFromMatrix(
+  countData = counts,
+  colData   = pasillaSampleAnno[mt, ],
+  design    = ~ condition)
+class(pasilla)
+
+```
+
+## 8.5.2 The DESeq2 method
+
+Our goal is to identify genes that are differentially abundant between the treated and the untreated cells. 
+
+A choice of standard analysis steps are wrapped into a single function, DESeq.
+
+```{r}
+pasilla = DESeq(pasilla)
+```
+
+Let us look at the results.
+
+```{r}
+res = results(pasilla)
+res[order(res$padj), ] %>% head
+
+```
+
+
+## 8.5.3 Exploring the results
+
+The p-value histogram
+
+```{r}
+ggplot(as(res, "data.frame"), aes(x = pvalue)) +
+  geom_histogram(binwidth = 0.01, fill = "Royalblue", boundary = 0)
+```
+
+MA plot
+
+```{r}
+#plotMA(pasilla, ylim = c( -2, 2))
+
+```
+
+PCA plot
+
+```{r}
+pas_rlog = rlogTransformation(pasilla)
+plotPCA(pas_rlog, intgroup=c("condition", "type")) + coord_fixed()
+```
+
+Heatmaps can be a powerful way of quickly getting an overview over a matrix-like dataset, count tables included.
+
+```{r}
+library("pheatmap")
+select = order(rowMeans(assay(pas_rlog)), decreasing = TRUE)[1:30]
+pheatmap( assay(pas_rlog)[select, ],
+     scale = "row",
+     annotation_col = as.data.frame(
+        colData(pas_rlog)[, c("condition", "type")] ))
+```
+
+**Do the axes of PCA plot always have to align with specific experimental covariates?**
+
+* No, It might be the case that other experimental covariates explain more than the ones we expect or wish to see.
+
+## 8.5.4 Exporting the results
+
+```{r}
+write.csv(as.data.frame(res), file = "treated_vs_untreated.csv")
+```
+
+# 8.6 Critique of default choices and possible modifications
+
+## 8.6.1 The few changes assumption
+
+Deferentially expressed, if we don't have this then we need to look for a subset of "negative control" genes for which we believe the assumption is tenable.
+
+## 8.6.2 Point-like null hypothesis
+
+As a default, the DESeq function tests against the null hypothesis that each gene has the same abundance across conditions. In large samples, however, we may get significant results without considering relevant biological conditions.
+
+# 8.7 Multi-factor designs and linear models
+
+## 8.7.1 What is a multifactorial design?
+
+We are looking at linear models. For example $y = b_0+x_1b_1+x_2b_2+x_1x_2b_{12}$
+
+* $b_0$ is the intercept
+* $x_1,x_2$ are the input values for our predictors
+* $b_1,b_2$ are the treatment effects for $x_1$ and $x_2$
+* $x_1x_2,b_1b_2$ are the interaction input and interaction effects, respectively.
+
+We often look at the logarithmic fold change.
+
+## 8.7.2 What about noise and replicates?
+
+We add a term $\epsilon_j$ to our model in order to account for any variation/noise in our data.
+
+This term is known as the residual.
+
+In order to get a unique and identifiable model, we require that the sum of squared residuals to be a minimum. This also gives us the best fit model.
+
+## 8.7.3 Analysis of variance
+
+The idea behind ANOVA is to identify all sources of variability. The simple case is
+
+* SSR: Sum of squared residuals
+* SSE: Sum of squared errors
+* SST: SSR + SSE
+
+## 8.7.4 Robustness
+
+methods based on least sum of squares have a low breakdown point, meaning that they are extremely sensitive to outliers.
+
+The **median** is a good pick to reduce this and increase **Robustness**
+
+To achieve a higher degree of robustness, we can use least absolute deviations, M-estimation, LTS,LQS, or general weighted regression.
+
+**Plot the graph of the function $p_s(\epsilon_)$proposed by Huber (1964) for M-estimators.**
+
+```{r}
+rho = function(x, s)
+  ifelse(abs(x) < s, x^2 / 2,  s * abs(x) - s^2 / 2)
+
+df = tibble(
+  x        = seq(-7, 7, length.out = 100),
+  parabola = x ^ 2 / 2,
+  Huber    = rho(x, s = 2))
+
+ggplot(reshape2::melt(df, id.vars = "x"),
+  aes(x = x, y = value, col = variable)) + geom_line()
+```
+
+
+# 8.8 Generalized linear models
+
+## 8.8.1 Modeling the data on a transformed scale
+
+Scaling the data is often useful, specifically when y is bounded, say on [0,1]
+
+## 8.8.2 Other error distributions
+
+Here we see a relation between least squares and mle, that is maximizing the likelihood is the same as minimizing the sum of squared residuals.
+
+## 8.8.3 A generalized linear model for count data
+
+The counts $K_{ij}$ for gene i, asmple j are modeled using a gamma-possion dist. Wtih mean $\mu_{ij}$ and disoersuib $\alpha_i$
+
+
+# 8.9 Two-factor analysis of the pasilla data
+
+```{r}
+pasillaTwoFactor = pasilla
+design(pasillaTwoFactor) = formula(~ type + condition)
+pasillaTwoFactor = DESeq(pasillaTwoFactor)
+```
+
+```{r}
+res2 = results(pasillaTwoFactor)
+head(res2, n = 3)
+
+```
+
+
+```{r}
+resType = results(pasillaTwoFactor,
+  contrast = c("type", "single", "paired"))
+head(resType, n = 3)
+```
+
+
+```{r}
+trsf = function(x) ifelse(is.na(x), 0, (-log10(x)) ^ (1/6))
+ggplot(tibble(pOne = res$pvalue,
+              pTwo = res2$pvalue),
+    aes(x = trsf(pOne), y = trsf(pTwo))) +
+    geom_hex(bins = 75) + coord_fixed() +
+    xlab("Single factor analysis (condition)") +
+    ylab("Two factor analysis (type + condition)") +
+    geom_abline(col = "orange")
+
+```
+
+
+```{r}
+compareRes = table(
+   `simple analysis` = res$padj < 0.1,
+   `two factor` = res2$padj < 0.1 )
+addmargins( compareRes )
+
+```
+
+
+
+Why do we detect fewer significant genes when we do not take into account the type variable? More generally, what does this mean about the benefit of taking into account (or not) blocking factors?
+
+* When we dont model the blokcing factor, the bariablilty in the data that is due to it is taken by the $\epsilon$'s, so they are larger that the model with blocking factors. This means that there is higer uncertainty in the beta estimates. But the blocker factor model has more parameters to estimate. Or less degrees of freedom. 
+
+
+# 8.10 Further statistical concepts
+
+## 8.10.1 Sharing of dispersion information across genes
+
+DESeq2 uses an empirical Bayes approach for the estimation of the dispersion parameters.
+
+## 8.10.2 Count data transformations
+
+```{r}
+vsp = varianceStabilizingTransformation(pasilla)
+```
+
+```{r}
+j = 1
+ggplot(tibble(
+         x    = assay(pasilla)[, j],
+         VST  = assay(vsp)[, j],
+         log2 = log2(assay(pasilla)[, j])) %>%
+             reshape2::melt(id.vars = "x"),
+       aes(x = x, y = value, col = variable)) +
+  geom_line() + xlim(c(0, 600)) + ylim(c(0, 9)) +
+  xlab("counts") + ylab("transformed")
+
+```
+
+
+```{r}
+
+library("vsn")
+rlp = rlogTransformation(pasilla)
+
+msd = function(x)
+  meanSdPlot(x, plot = FALSE)$gg + ylim(c(0, 1)) +
+     theme(legend.position = "none")
+
+gridExtra::grid.arrange(
+  msd(log2(counts(pasilla, normalized = TRUE) + 1)) +
+    ylab("sd(log2)"),
+  msd(assay(vsp)) + ylab("sd(vst)"),
+  msd(assay(rlp)) + ylab("sd(rlog)"),
+  ncol = 3)
+
+```
+
+
+```{r}
+# par(mfrow = c(4, 1), mar = c(2, 2, 1, 1))
+# myMA = function(h, v, theta = 0.5) {
+#   plotMA(pasilla, lfcThreshold = theta, altHypothesis = h,
+#          ylim = c(-2.5, 2.5))
+#   abline(h = v * theta, col = "dodgerblue", lwd = 2)
+# }
+# myMA("greaterAbs", c(-1, 1))
+# myMA("lessAbs",    c(-1, 1))
+# myMA("greater",          1)
+# myMA("less",         -1   )
+```
+
+
+# 8.13 Exercises
+
+Going to start with code from 8.5
+
+```{r}
+annotationFile = system.file("extdata",
+  "pasilla_sample_annotation.csv",
+  package = "pasilla", mustWork = TRUE)
+pasillaSampleAnno = readr::read_csv(annotationFile)
+pasillaSampleAnno
+
+library("dplyr")
+pasillaSampleAnno = mutate(pasillaSampleAnno,
+condition = factor(condition, levels = c("untreated", "treated")),
+type = factor(sub("-.*", "", type), levels = c("single", "paired")))
+
+with(pasillaSampleAnno,
+       table(condition, type))
+
+mt = match(colnames(counts), sub("fb$", "", pasillaSampleAnno$file))
+stopifnot(!any(is.na(mt)))
+```
